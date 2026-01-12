@@ -1,0 +1,413 @@
+:root {
+    --primary: #6366f1;
+    --secondary: #ec4899;
+    --accent: #10b981;
+    --dark-bg: #0f172a;
+    --card-bg: rgba(30, 41, 59, 0.7);
+    --glass-border: rgba(255, 255, 255, 0.1);
+    --text-main: #f8fafc;
+    --text-muted: #94a3b8;
+}
+
+* {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+    font-family: 'Outfit', sans-serif;
+}
+
+body {
+    background-color: var(--dark-bg);
+    color: var(--text-main);
+    height: 100vh;
+    /* Fixed height */
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    /* No body scroll */
+    background: radial-gradient(circle at 10% 20%, rgb(33, 43, 89) 0%, rgb(15, 23, 42) 90%);
+}
+
+/* Animated Background Shapes - Keep as is */
+.shape {
+    position: absolute;
+    background: linear-gradient(45deg, var(--primary), var(--secondary));
+    border-radius: 50%;
+    filter: blur(80px);
+    z-index: -1;
+    animation: float 10s infinite ease-in-out;
+    opacity: 0.4;
+    pointer-events: none;
+    /* Prevent interference */
+}
+
+/* ... shape-1, shape-2, keyframes ... */
+.shape-1 {
+    width: 300px;
+    height: 300px;
+    top: -50px;
+    left: -50px;
+}
+
+.shape-2 {
+    width: 400px;
+    height: 400px;
+    bottom: -100px;
+    right: -100px;
+    background: linear-gradient(45deg, var(--secondary), var(--accent));
+    animation-delay: -5s;
+}
+
+@keyframes float {
+
+    0%,
+    100% {
+        transform: translate(0, 0);
+    }
+
+    50% {
+        transform: translate(30px, 50px);
+    }
+}
+
+.container {
+    width: 100%;
+    max-width: 1100px;
+    /* Widened slightly */
+    margin: 0 auto;
+    padding: 1.5rem;
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+}
+
+header {
+    text-align: center;
+    margin-bottom: 2rem;
+    flex-shrink: 0;
+    /* Keep header fixed size */
+    animation: fadeInDown 0.8s ease-out;
+}
+
+h1 {
+    font-size: 2.5rem;
+    /* Slightly smaller to save space */
+    font-weight: 800;
+    background: linear-gradient(to right, var(--primary), var(--secondary), var(--accent));
+    -webkit-background-clip: text;
+    background-clip: text;
+    -webkit-text-fill-color: transparent;
+    margin-bottom: 0.2rem;
+    letter-spacing: -2px;
+}
+
+.subtitle {
+    color: var(--text-muted);
+    font-size: 1rem;
+}
+
+/* Main Grid */
+.calculator-grid {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 1.5rem;
+    animation: fadeInUp 0.8s ease-out 0.2s backwards;
+    flex-grow: 1;
+    /* Take remaining height */
+    min-height: 0;
+    /* Allow shrinking */
+    padding-bottom: 1rem;
+}
+
+@media (min-width: 768px) {
+    .calculator-grid {
+        grid-template-columns: 1.1fr 0.9fr;
+        grid-template-rows: 100%;
+        /* Force full height of grid container */
+    }
+}
+
+/* Cards */
+.card {
+    background: var(--card-bg);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    border: 1px solid var(--glass-border);
+    border-radius: 20px;
+    padding: 1.5rem;
+    box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.3);
+    transition: transform 0.3s ease, box-shadow 0.3s ease;
+
+    /* Flex column for internal scrolling */
+    display: flex;
+    flex-direction: column;
+    max-height: 100%;
+    overflow: hidden;
+}
+
+h2 {
+    margin-bottom: 1rem;
+    font-size: 1.3rem;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    flex-shrink: 0;
+}
+
+/* Inputs */
+.input-group {
+    margin-bottom: 0;
+}
+
+label {
+    margin-bottom: 0.3rem;
+    color: var(--text-muted);
+    font-weight: 600;
+    font-size: 0.85rem;
+}
+
+.prices-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 8px;
+    margin-bottom: 1.5rem;
+    flex-shrink: 0;
+}
+
+.price-input-container {
+    position: relative;
+}
+
+.currency-symbol {
+    position: absolute;
+    right: 12px;
+    top: 50%;
+    transform: translateY(-50%);
+    color: var(--text-muted);
+    font-size: 0.9rem;
+}
+
+input[type="number"] {
+    width: 100%;
+    background: rgba(15, 23, 42, 0.6);
+    border: 2px solid var(--glass-border);
+    border-radius: 10px;
+    padding: 10px 12px;
+    color: var(--text-main);
+    font-size: 1rem;
+    transition: all 0.2s;
+    outline: none;
+    -moz-appearance: textfield;
+}
+
+/* Weeks Config */
+.weeks-container {
+    margin-top: 10px;
+    overflow-y: auto;
+    /* Scrollable weeks */
+    flex-grow: 1;
+    padding-right: 5px;
+    /* Space for scrollbar */
+    /* Scrollbar styling */
+    scrollbar-width: thin;
+    scrollbar-color: var(--primary) transparent;
+}
+
+.weeks-container::-webkit-scrollbar {
+    width: 6px;
+}
+
+.weeks-container::-webkit-scrollbar-thumb {
+    background-color: var(--primary);
+    border-radius: 10px;
+}
+
+.week-row {
+    margin-bottom: 8px;
+    padding: 8px 12px;
+    background: rgba(255, 255, 255, 0.03);
+    border-radius: 10px;
+}
+
+/* ... week controls css same as before ... */
+.week-controls {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.btn-circle {
+    width: 28px;
+    height: 28px;
+    border-radius: 50%;
+    border: none;
+    cursor: pointer;
+    background: var(--primary);
+    color: white;
+    font-weight: bold;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 0.2s;
+    font-size: 0.8rem;
+}
+
+.btn-circle:hover {
+    background: var(--secondary);
+    transform: scale(1.1);
+}
+
+.days-count {
+    font-weight: 800;
+    font-size: 1rem;
+    min-width: 24px;
+    text-align: center;
+}
+
+.btn-delete {
+    background: #ef4444;
+    width: 24px;
+    height: 24px;
+}
+
+/* Results */
+.result-box {
+    text-align: center;
+    padding: 1.5rem;
+    display: flex;
+    flex-direction: column;
+}
+
+.big-price {
+    font-size: 2.5rem;
+    /* Adjusted */
+    font-weight: 800;
+    margin: 0.5rem 0;
+    color: var(--accent);
+    text-shadow: 0 0 20px rgba(16, 185, 129, 0.3);
+}
+
+.comparison {
+    font-size: 0.85rem;
+    color: var(--text-muted);
+    margin-bottom: 1rem;
+    padding-bottom: 1rem;
+    border-bottom: 1px solid var(--glass-border);
+    flex-shrink: 0;
+}
+
+.recommendation-badge {
+    background: linear-gradient(135deg, var(--primary), var(--secondary));
+    padding: 0.8rem;
+    border-radius: 12px;
+    font-weight: 600;
+    margin-top: 0.5rem;
+    display: inline-block;
+    box-shadow: 0 4px 15px rgba(236, 72, 153, 0.3);
+    width: 100%;
+    font-size: 0.95rem;
+}
+
+.savings-tag {
+    background: rgba(16, 185, 129, 0.2);
+    color: var(--accent);
+    padding: 2px 8px;
+    border-radius: 20px;
+    font-size: 0.75rem;
+    font-weight: 800;
+    margin-left: 5px;
+    text-transform: uppercase;
+}
+
+/* Details Section */
+.details-section {
+    margin-top: 1rem;
+    text-align: left;
+    background: rgba(0, 0, 0, 0.2);
+    padding: 1rem;
+    border-radius: 12px;
+    font-size: 0.85rem;
+
+    /* Make this scrollable if needed */
+    flex-grow: 1;
+    overflow-y: auto;
+    min-height: 0;
+
+    scrollbar-width: thin;
+    scrollbar-color: var(--primary) transparent;
+}
+
+.details-section::-webkit-scrollbar {
+    width: 6px;
+}
+
+.details-section::-webkit-scrollbar-thumb {
+    background-color: var(--primary);
+    border-radius: 10px;
+}
+
+
+.details-list {
+    list-style: none;
+    padding: 0;
+}
+
+.details-item {
+    display: flex;
+    justify-content: space-between;
+    margin-bottom: 6px;
+    padding-bottom: 6px;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.details-total {
+    display: flex;
+    justify-content: space-between;
+    margin-top: 10px;
+    font-weight: bold;
+    color: var(--accent);
+    font-size: 0.95rem;
+}
+
+.details-summary {
+    margin-top: 8px;
+    font-size: 0.8rem;
+    font-weight: 500;
+}
+
+footer {
+    text-align: center;
+    padding: 1rem;
+    color: var(--text-muted);
+    font-size: 0.8rem;
+    margin-top: auto;
+    flex-shrink: 0;
+}
+
+/* Config Header */
+.config-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 0.8rem;
+    flex-shrink: 0;
+}
+
+/* Responsive Adjustments */
+@media (max-width: 768px) {
+    body {
+        height: auto;
+        overflow: auto;
+        /* Revert to scroll on mobile if content too tall */
+    }
+
+    .container {
+        height: auto;
+        min-height: 100vh;
+    }
+
+    .calculator-grid {
+        display: block;
+        /* Stack on mobile */
+    }
+}
