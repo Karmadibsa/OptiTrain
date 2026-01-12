@@ -27,11 +27,15 @@ body {
     overflow-x: hidden;
     /* Prevent horizontal scroll */
     background: radial-gradient(circle at 10% 20%, rgb(33, 43, 89) 0%, rgb(15, 23, 42) 90%);
+    background-attachment: fixed;
+    /* Fixes background cutting off on scroll */
+    width: 100%;
 }
 
 /* Animated Background shapes */
 .shape {
-    position: absolute;
+    position: fixed;
+    /* Changed from absolute to fixed to prevent scrollbar issues */
     background: linear-gradient(45deg, var(--primary), var(--secondary));
     border-radius: 50%;
     filter: blur(80px);
