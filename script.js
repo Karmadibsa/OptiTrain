@@ -7,6 +7,9 @@ document.addEventListener('DOMContentLoaded', () => {
     let stationFrom = null;
     let stationTo   = null;
 
+    // Profil voyageur : 'adult' | 'young'
+    let profile = 'adult';
+
     const today = new Date();
     today.setHours(0, 0, 0, 0);
 
@@ -115,7 +118,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     function applyTariff() {
         if (!stationFrom || !stationTo) return;
-        const t = getTariff(stationFrom.id, stationTo.id);
+        const t = getTariff(stationFrom.id, stationTo.id, profile);
         if (t) {
             priceMonthInput.value = t.month;
             priceWeekInput.value  = t.week;
@@ -161,6 +164,14 @@ document.addEventListener('DOMContentLoaded', () => {
         applyTariff();
         saveState();
     }
+
+    window.setProfile = function(p) {
+        profile = p;
+        document.getElementById('btnAdult').classList.toggle('active', p === 'adult');
+        document.getElementById('btnYoung').classList.toggle('active', p === 'young');
+        applyTariff();
+        saveState();
+    };
 
     window.clearStation = function(side) {
         if (side === 'from') {
@@ -214,6 +225,7 @@ document.addEventListener('DOMContentLoaded', () => {
             selectedDays: Array.from(selectedDays),
             stationFrom,
             stationTo,
+            profile,
             prices: {
                 month: priceMonthInput.value,
                 week:  priceWeekInput.value,
@@ -244,6 +256,11 @@ document.addEventListener('DOMContentLoaded', () => {
                 if (parsed.prices.month) priceMonthInput.value = parsed.prices.month;
                 if (parsed.prices.week)  priceWeekInput.value  = parsed.prices.week;
                 if (parsed.prices.day)   priceDayInput.value   = parsed.prices.day;
+            }
+            if (parsed.profile) {
+                profile = parsed.profile;
+                document.getElementById('btnAdult').classList.toggle('active', profile === 'adult');
+                document.getElementById('btnYoung').classList.toggle('active', profile === 'young');
             }
             if (stationFrom && stationTo) applyTariff();
         } catch (e) { /* ignore corrupt storage */ }
