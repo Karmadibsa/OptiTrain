@@ -385,6 +385,17 @@ input[type="number"]:focus {
     white-space: nowrap;
 }
 
+/* Dropdown loading / empty state */
+.station-loading {
+    padding: 12px 14px;
+    color: var(--text-muted);
+    font-size: 0.85rem;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-style: italic;
+}
+
 /* Status bar under station row */
 .tariff-status {
     font-size: 0.78rem;
@@ -409,6 +420,18 @@ input[type="number"]:focus {
     border: 1px solid rgba(245, 158, 11, 0.2);
 }
 
+/* No-memory CTA state */
+.tariff-status.status-info {
+    background: rgba(99, 102, 241, 0.07);
+    color: var(--text-main);
+    border: 1px solid rgba(99, 102, 241, 0.2);
+    align-items: flex-start;
+    flex-direction: column;
+    padding: 12px 14px;
+    min-height: unset;
+    gap: 0;
+}
+
 .verify-link {
     margin-left: auto;
     color: rgba(16, 185, 129, 0.8);
@@ -419,6 +442,64 @@ input[type="number"]:focus {
 
 .verify-link:hover {
     color: #10b981;
+}
+
+/* No-memory CTA block (inside status-info) */
+.no-price-cta {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    width: 100%;
+}
+
+.no-price-label {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 0.82rem;
+    color: var(--text-muted);
+    flex-wrap: wrap;
+}
+
+.no-price-label i {
+    color: var(--primary);
+    flex-shrink: 0;
+}
+
+.no-price-label strong {
+    color: var(--text-main);
+    font-weight: 600;
+}
+
+.btn-find-prices {
+    display: inline-flex;
+    align-items: center;
+    gap: 7px;
+    background: var(--primary);
+    color: #fff;
+    padding: 8px 14px;
+    border-radius: 10px;
+    font-size: 0.82rem;
+    font-weight: 700;
+    font-family: 'Outfit', sans-serif;
+    text-decoration: none;
+    transition: background 0.2s, transform 0.15s, box-shadow 0.2s;
+    align-self: flex-start;
+    white-space: nowrap;
+}
+
+.btn-find-prices:hover {
+    background: var(--primary-hover);
+    transform: translateY(-1px);
+    box-shadow: 0 4px 14px rgba(99, 102, 241, 0.4);
+}
+
+.no-price-hint {
+    font-size: 0.72rem;
+    color: var(--text-muted);
+    font-style: italic;
+    margin: 0;
+    line-height: 1.4;
 }
 
 /* Auto-fill badge on price labels */
@@ -832,6 +913,12 @@ footer {
     .card {
         padding: 1.25rem;
         border-radius: 16px;
+    }
+
+    /* Profile selector : 2×2 grid sur mobile */
+    .profile-selector {
+        display: grid;
+        grid-template-columns: 1fr 1fr;
     }
 
     /* Prices: 3 colonnes compactes sur mobile */

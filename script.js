@@ -1,36 +1,30 @@
 document.addEventListener('DOMContentLoaded', () => {
 
     // ─── State ────────────────────────────────────────────────────────────────
-    let selectedDays = new Set(); // Set of 'YYYY-MM-DD' strings
-
-    // Station state  { id, name } or null
-    let stationFrom = null;
-    let stationTo   = null;
-
-    // Profil voyageur : 'adult' | 'young'
-    let profile = 'adult';
+    let selectedDays = new Set(); // 'YYYY-MM-DD'
+    let stationFrom  = null;      // { id (UIC), name, city, dept }
+    let stationTo    = null;
+    let profile      = 'adult';   // 'adult' | 'young' | 'senior' | 'chomeur'
 
     const today = new Date();
     today.setHours(0, 0, 0, 0);
-
-    // First day of the currently displayed month
     let viewDate = new Date(today.getFullYear(), today.getMonth(), 1);
 
     // ─── DOM refs ─────────────────────────────────────────────────────────────
-    const calGrid         = document.getElementById('calendarGrid');
-    const calMonthLabel   = document.getElementById('calMonthLabel');
-    const selectedCountEl = document.getElementById('selectedCount');
-    const clearBtn        = document.getElementById('clearBtn');
-    const priceMonthInput = document.getElementById('priceMonth');
-    const priceWeekInput  = document.getElementById('priceWeek');
-    const priceDayInput   = document.getElementById('priceDay');
-    const finalPriceEl    = document.getElementById('finalPrice');
+    const calGrid          = document.getElementById('calendarGrid');
+    const calMonthLabel    = document.getElementById('calMonthLabel');
+    const selectedCountEl  = document.getElementById('selectedCount');
+    const clearBtn         = document.getElementById('clearBtn');
+    const priceMonthInput  = document.getElementById('priceMonth');
+    const priceWeekInput   = document.getElementById('priceWeek');
+    const priceDayInput    = document.getElementById('priceDay');
+    const finalPriceEl     = document.getElementById('finalPrice');
     const recommendationEl = document.getElementById('recommendationText');
-    const monthlyCostEl   = document.getElementById('monthlyCostDisplay');
-    const savingsEl       = document.getElementById('savingsText');
-    const funFactEl       = document.getElementById('funFact');
-    const detailsSection  = document.getElementById('detailsSection');
-    // Station search DOM
+    const monthlyCostEl    = document.getElementById('monthlyCostDisplay');
+    const savingsEl        = document.getElementById('savingsText');
+    const funFactEl        = document.getElementById('funFact');
+    const detailsSection   = document.getElementById('detailsSection');
+    // Station DOM
     const inputFrom    = document.getElementById('stationFrom');
     const inputTo      = document.getElementById('stationTo');
     const dropFrom     = document.getElementById('dropdownFrom');
@@ -46,66 +40,80 @@ document.addEventListener('DOMContentLoaded', () => {
         const d = String(date.getDate()).padStart(2, '0');
         return `${y}-${m}-${d}`;
     }
-
     function strToDate(s) {
         const [y, m, d] = s.split('-').map(Number);
         return new Date(y, m - 1, d);
     }
-
-    // Returns 'YYYY-MM-DD' of the Monday of the week containing dateStr
     function getMondayOfWeek(dateStr) {
         const d = strToDate(dateStr);
-        const dow = (d.getDay() + 6) % 7; // 0=Mon … 6=Sun
+        const dow = (d.getDay() + 6) % 7;
         d.setDate(d.getDate() - dow);
         return dateToStr(d);
     }
-
-    // ISO 8601 week key: 'YYYY-Www'
     function getISOWeekKey(dateStr) {
         const d = strToDate(dateStr);
         const dow = (d.getDay() + 6) % 7;
         const thu = new Date(d);
-        thu.setDate(d.getDate() - dow + 3); // Thursday of the ISO week
+        thu.setDate(d.getDate() - dow + 3);
         const y = thu.getFullYear();
         const yearStart = new Date(y, 0, 1);
         const weekNo = Math.ceil((((thu - yearStart) / 86400000) + 1) / 7);
         return `${y}-W${String(weekNo).padStart(2, '0')}`;
     }
-
-    function capitalize(s) { return s.charAt(0).toUpperCase() + s.slice(1); }
-
+    function capitalize(s) { return s ? s.charAt(0).toUpperCase() + s.slice(1) : ''; }
     function formatMonthKey(mk) {
         const [y, m] = mk.split('-').map(Number);
-        return capitalize(
-            new Date(y, m - 1, 1).toLocaleDateString('fr-FR', { month: 'long', year: 'numeric' })
-        );
+        return capitalize(new Date(y, m - 1, 1).toLocaleDateString('fr-FR', { month: 'long', year: 'numeric' }));
     }
 
-    // ─── Station search ───────────────────────────────────────────────────────
+    // ─── Station search (SNCF Open Data — sans token, CORS natif) ────────────
 
-    // Normalize : retire accents, minuscules — pour matching souple
-    function norm(s) {
-        return s.toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '');
+    const SNCF_API = 'https://ressources.data.sncf.com/api/explore/v2.1/catalog/datasets/referentiel-gares-voyageurs/records';
+
+    async function searchStationsAPI(query, signal) {
+        const url = new URL(SNCF_API);
+        url.searchParams.set('q', query);
+        url.searchParams.set('select', 'nom_gare,gare_uic_code,commune_libellemin,departement_libellemin');
+        url.searchParams.set('limit', '8');
+        url.searchParams.set('order_by', 'nbre_plateformes desc');
+
+        const resp = await fetch(url, { signal });
+        if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
+        const data = await resp.json();
+
+        return (data.results || [])
+            .map(r => ({
+                id:   r.gare_uic_code || '',
+                name: r.nom_gare      || '',
+                city: capitalize((r.commune_libellemin    || '').toLowerCase()),
+                dept: capitalize((r.departement_libellemin || '').toLowerCase()),
+            }))
+            .filter(r => r.id && r.name);
     }
 
-    function filterStations(query) {
-        if (query.length < 2) return [];
-        const q = norm(query);
-        return STATIONS_DATA.filter(s => norm(s.name).includes(q)).slice(0, 7);
+    function showDropdownLoading(drop) {
+        drop.innerHTML = `<div class="station-loading">
+            <i class="fa-solid fa-circle-notch fa-spin"></i> Recherche…
+        </div>`;
+        drop.classList.add('open');
     }
 
     function openDropdown(drop, results, onSelect) {
-        if (!results.length) { drop.innerHTML = ''; drop.classList.remove('open'); return; }
+        if (!results.length) {
+            drop.innerHTML = '<div class="station-loading">Aucune gare trouvée</div>';
+            drop.classList.add('open');
+            return;
+        }
         drop.innerHTML = results.map(s => `
             <div class="station-option" data-id="${s.id}">
                 <span class="option-name">${s.name}</span>
-                <span class="option-region">${s.region}</span>
+                <span class="option-region">${s.city}${s.dept ? ' · ' + s.dept : ''}</span>
             </div>`).join('');
         drop.classList.add('open');
         drop.querySelectorAll('.station-option').forEach(el => {
             el.addEventListener('mousedown', e => {
                 e.preventDefault();
-                const station = STATIONS_DATA.find(s => s.id === el.dataset.id);
+                const station = results.find(s => s.id === el.dataset.id);
                 if (station) onSelect(station);
             });
         });
@@ -116,62 +124,118 @@ document.addEventListener('DOMContentLoaded', () => {
         dropTo.classList.remove('open');
     }
 
-    function applyTariff() {
-        if (!stationFrom || !stationTo) return;
-        const t = getTariff(stationFrom.id, stationTo.id, profile);
-        if (t) {
-            priceMonthInput.value = t.month;
-            priceWeekInput.value  = t.week;
-            priceDayInput.value   = t.day;
-            ['badgeMonth', 'badgeWeek', 'badgeDay'].forEach(id => {
-                document.getElementById(id).style.display = 'inline';
-            });
-            tariffStatus.className = 'tariff-status status-ok';
-            tariffStatus.innerHTML =
-                `<i class="fa-solid fa-circle-check"></i> Tarifs TER injectés pour <strong>${stationFrom.name} → ${stationTo.name}</strong>
-                 <a href="https://www.ter.sncf.com/grand-est/offres/abonnements-ter" target="_blank" rel="noopener" class="verify-link">Vérifier</a>`;
+    // ─── Price memory (localStorage par trajet + profil) ─────────────────────
+
+    function routeKey() {
+        if (!stationFrom || !stationTo) return null;
+        // Clé symétrique : même résultat A→B et B→A
+        return [stationFrom.id, stationTo.id].sort().join('-');
+    }
+
+    function priceStorageKey() {
+        const rk = routeKey();
+        return rk ? `optitrain_route_${rk}_${profile}` : null;
+    }
+
+    function loadRoutePrices() {
+        const k = priceStorageKey();
+        if (!k) return null;
+        try {
+            const raw = localStorage.getItem(k);
+            return raw ? JSON.parse(raw) : null;
+        } catch { return null; }
+    }
+
+    function saveRoutePrices() {
+        const k = priceStorageKey();
+        if (!k) return;
+        const day   = parseFloat(priceDayInput.value)   || 0;
+        const week  = parseFloat(priceWeekInput.value)  || 0;
+        const month = parseFloat(priceMonthInput.value) || 0;
+        if (!day && !week && !month) return; // rien à sauvegarder
+        const payload = { day, week, month, updatedAt: dateToStr(today) };
+        localStorage.setItem(k, JSON.stringify(payload));
+        // Met à jour le badge sans vider les champs
+        showMemoryBadge(payload.updatedAt);
+    }
+
+    function showMemoryBadge(updatedAt) {
+        const d = new Date(updatedAt + 'T12:00:00');
+        const label = d.toLocaleDateString('fr-FR', { day: 'numeric', month: 'short', year: 'numeric' });
+        tariffStatus.className = 'tariff-status status-ok';
+        tariffStatus.innerHTML = `
+            <i class="fa-solid fa-floppy-disk"></i>
+            Prix mémorisés · mis à jour le ${label}
+            <a href="https://www.sncf-connect.com/app/fr-fr/information/abonnements-trajets-reguliers"
+               target="_blank" rel="noopener" class="verify-link">
+                Revérifier ↗
+            </a>`;
+    }
+
+    function updatePriceStatus() {
+        if (!stationFrom || !stationTo) {
+            tariffStatus.className = 'tariff-status';
+            tariffStatus.innerHTML = '';
+            return;
+        }
+
+        const saved = loadRoutePrices();
+
+        if (saved) {
+            priceMonthInput.value = saved.month || '';
+            priceWeekInput.value  = saved.week  || '';
+            priceDayInput.value   = saved.day   || '';
+            showMemoryBadge(saved.updatedAt);
             calculate();
         } else {
-            ['badgeMonth', 'badgeWeek', 'badgeDay'].forEach(id => {
-                document.getElementById(id).style.display = 'none';
-            });
-            tariffStatus.className = 'tariff-status status-warn';
-            tariffStatus.innerHTML =
-                `<i class="fa-solid fa-triangle-exclamation"></i> Liaison <strong>${stationFrom.name} → ${stationTo.name}</strong> non répertoriée — saisis les prix manuellement.`;
+            // Pas de prix en mémoire → on vide les inputs et on affiche le CTA
+            priceMonthInput.value = '';
+            priceWeekInput.value  = '';
+            priceDayInput.value   = '';
+
+            const from = stationFrom.name;
+            const to   = stationTo.name;
+
+            tariffStatus.className = 'tariff-status status-info';
+            tariffStatus.innerHTML = `
+                <div class="no-price-cta">
+                    <div class="no-price-label">
+                        <i class="fa-solid fa-circle-info"></i>
+                        Aucun prix mémorisé pour <strong>${from} → ${to}</strong> (${profileLabel()})
+                    </div>
+                    <a href="https://www.sncf-connect.com/app/fr-fr/information/abonnements-trajets-reguliers"
+                       target="_blank" rel="noopener" class="btn-find-prices">
+                        <i class="fa-solid fa-arrow-up-right-from-square"></i>
+                        Trouver mes tarifs officiels →
+                    </a>
+                    <p class="no-price-hint">Saisis tes prix ci-dessus — ils seront mémorisés automatiquement.</p>
+                </div>`;
+            calculate(); // relance avec inputs vides
         }
     }
 
-    function clearTariffBadges() {
-        ['badgeMonth', 'badgeWeek', 'badgeDay'].forEach(id => {
-            document.getElementById(id).style.display = 'none';
-        });
-        tariffStatus.className = 'tariff-status';
-        tariffStatus.innerHTML = '';
+    function profileLabel() {
+        const labels = { adult: '+26 ans', young: '−26 ans', senior: 'Senior', chomeur: "Dem. d'emploi" };
+        return labels[profile] || profile;
     }
+
+    // ─── Station selection / interaction ─────────────────────────────────────
 
     function selectStation(side, station) {
         if (side === 'from') {
-            stationFrom      = station;
-            inputFrom.value  = station.name;
+            stationFrom           = station;
+            inputFrom.value       = station.name;
             clearFromBtn.style.display = 'flex';
             dropFrom.classList.remove('open');
         } else {
-            stationTo       = station;
-            inputTo.value   = station.name;
+            stationTo             = station;
+            inputTo.value         = station.name;
             clearToBtn.style.display = 'flex';
             dropTo.classList.remove('open');
         }
-        applyTariff();
+        updatePriceStatus();
         saveState();
     }
-
-    window.setProfile = function(p) {
-        profile = p;
-        document.getElementById('btnAdult').classList.toggle('active', p === 'adult');
-        document.getElementById('btnYoung').classList.toggle('active', p === 'young');
-        applyTariff();
-        saveState();
-    };
 
     window.clearStation = function(side) {
         if (side === 'from') {
@@ -183,7 +247,8 @@ document.addEventListener('DOMContentLoaded', () => {
             inputTo.value = '';
             clearToBtn.style.display = 'none';
         }
-        clearTariffBadges();
+        tariffStatus.className = 'tariff-status';
+        tariffStatus.innerHTML = '';
         saveState();
     };
 
@@ -193,103 +258,149 @@ document.addEventListener('DOMContentLoaded', () => {
         inputTo.value   = stationTo   ? stationTo.name   : '';
         clearFromBtn.style.display = stationFrom ? 'flex' : 'none';
         clearToBtn.style.display   = stationTo   ? 'flex' : 'none';
-        clearTariffBadges();
-        applyTariff();
+        updatePriceStatus();
         saveState();
     };
 
-    // Input listeners — debounce 150ms
+    window.setProfile = function(p) {
+        profile = p;
+        ['adult', 'young', 'senior', 'chomeur'].forEach(id => {
+            const btn = document.getElementById('btn' + id.charAt(0).toUpperCase() + id.slice(1));
+            if (btn) btn.classList.toggle('active', id === p);
+        });
+        updatePriceStatus(); // recharge les prix pour ce profil
+        saveState();
+    };
+
+    // Input listeners avec AbortController pour annuler les requêtes obsolètes
     let debounceFrom, debounceTo;
+    let abortFrom = new AbortController();
+    let abortTo   = new AbortController();
+
     inputFrom.addEventListener('input', () => {
-        stationFrom = null; clearFromBtn.style.display = 'none'; clearTariffBadges();
+        stationFrom = null;
+        clearFromBtn.style.display = 'none';
+        tariffStatus.className = 'tariff-status';
+        tariffStatus.innerHTML = '';
+
         clearTimeout(debounceFrom);
-        debounceFrom = setTimeout(() => {
-            openDropdown(dropFrom, filterStations(inputFrom.value),
-                s => selectStation('from', s));
-        }, 150);
+        abortFrom.abort();
+        abortFrom = new AbortController();
+
+        const q = inputFrom.value.trim();
+        if (q.length < 2) { dropFrom.classList.remove('open'); return; }
+
+        showDropdownLoading(dropFrom);
+
+        debounceFrom = setTimeout(async () => {
+            try {
+                const results = await searchStationsAPI(q, abortFrom.signal);
+                openDropdown(dropFrom, results, s => selectStation('from', s));
+            } catch (e) {
+                if (e.name !== 'AbortError') {
+                    dropFrom.innerHTML = '<div class="station-loading">Erreur réseau — réessaie.</div>';
+                }
+            }
+        }, 300);
     });
+
     inputTo.addEventListener('input', () => {
-        stationTo = null; clearToBtn.style.display = 'none'; clearTariffBadges();
+        stationTo = null;
+        clearToBtn.style.display = 'none';
+        tariffStatus.className = 'tariff-status';
+        tariffStatus.innerHTML = '';
+
         clearTimeout(debounceTo);
-        debounceTo = setTimeout(() => {
-            openDropdown(dropTo, filterStations(inputTo.value),
-                s => selectStation('to', s));
-        }, 150);
+        abortTo.abort();
+        abortTo = new AbortController();
+
+        const q = inputTo.value.trim();
+        if (q.length < 2) { dropTo.classList.remove('open'); return; }
+
+        showDropdownLoading(dropTo);
+
+        debounceTo = setTimeout(async () => {
+            try {
+                const results = await searchStationsAPI(q, abortTo.signal);
+                openDropdown(dropTo, results, s => selectStation('to', s));
+            } catch (e) {
+                if (e.name !== 'AbortError') {
+                    dropTo.innerHTML = '<div class="station-loading">Erreur réseau — réessaie.</div>';
+                }
+            }
+        }, 300);
     });
+
     inputFrom.addEventListener('blur', () => setTimeout(closeAllDropdowns, 150));
     inputTo.addEventListener('blur',   () => setTimeout(closeAllDropdowns, 150));
 
-    // ─── Persistence ──────────────────────────────────────────────────────────
+    // ─── Persistence (session globale) ────────────────────────────────────────
+    // Note : les PRIX sont stockés par trajet+profil dans des clés séparées.
+    // Ce saveState ne gère que le contexte : gares, profil, jours sélectionnés.
+
     function saveState() {
-        localStorage.setItem('optitrain_data', JSON.stringify({
+        localStorage.setItem('optitrain_session', JSON.stringify({
             selectedDays: Array.from(selectedDays),
             stationFrom,
             stationTo,
             profile,
-            prices: {
-                month: priceMonthInput.value,
-                week:  priceWeekInput.value,
-                day:   priceDayInput.value,
-            }
         }));
     }
 
     function loadState() {
         try {
-            const saved = localStorage.getItem('optitrain_data');
-            if (!saved) return;
-            const parsed = JSON.parse(saved);
-            if (Array.isArray(parsed.selectedDays)) {
-                parsed.selectedDays.forEach(d => selectedDays.add(d));
-            }
-            if (parsed.stationFrom) {
-                stationFrom = parsed.stationFrom;
+            const raw = localStorage.getItem('optitrain_session');
+            if (!raw) return;
+            const s = JSON.parse(raw);
+            if (Array.isArray(s.selectedDays)) s.selectedDays.forEach(d => selectedDays.add(d));
+            if (s.stationFrom) {
+                stationFrom = s.stationFrom;
                 inputFrom.value = stationFrom.name;
                 clearFromBtn.style.display = 'flex';
             }
-            if (parsed.stationTo) {
-                stationTo = parsed.stationTo;
+            if (s.stationTo) {
+                stationTo = s.stationTo;
                 inputTo.value = stationTo.name;
                 clearToBtn.style.display = 'flex';
             }
-            if (parsed.prices) {
-                if (parsed.prices.month) priceMonthInput.value = parsed.prices.month;
-                if (parsed.prices.week)  priceWeekInput.value  = parsed.prices.week;
-                if (parsed.prices.day)   priceDayInput.value   = parsed.prices.day;
+            if (s.profile) {
+                profile = s.profile;
+                ['adult', 'young', 'senior', 'chomeur'].forEach(id => {
+                    const btn = document.getElementById('btn' + id.charAt(0).toUpperCase() + id.slice(1));
+                    if (btn) btn.classList.toggle('active', id === profile);
+                });
             }
-            if (parsed.profile) {
-                profile = parsed.profile;
-                document.getElementById('btnAdult').classList.toggle('active', profile === 'adult');
-                document.getElementById('btnYoung').classList.toggle('active', profile === 'young');
-            }
-            if (stationFrom && stationTo) applyTariff();
-        } catch (e) { /* ignore corrupt storage */ }
+        } catch { /* ignore */ }
+    }
+
+    // ─── Auto-save des prix (1 s après saisie) ────────────────────────────────
+    let autoSaveTimer;
+    function onPriceChange() {
+        calculate();
+        if (!stationFrom || !stationTo) return;
+        clearTimeout(autoSaveTimer);
+        autoSaveTimer = setTimeout(saveRoutePrices, 1000);
     }
 
     // ─── Calendar rendering ───────────────────────────────────────────────────
     const DAY_LABELS = ['L', 'M', 'M', 'J', 'V', 'S', 'D'];
 
-    window.prevMonth = function () {
-        viewDate.setMonth(viewDate.getMonth() - 1);
-        renderCalendar();
-    };
+    window.prevMonth = function() { viewDate.setMonth(viewDate.getMonth() - 1); renderCalendar(); };
+    window.nextMonth = function() { viewDate.setMonth(viewDate.getMonth() + 1); renderCalendar(); };
 
-    window.nextMonth = function () {
-        viewDate.setMonth(viewDate.getMonth() + 1);
-        renderCalendar();
-    };
-
-    window.toggleDay = function (dateStr) {
+    window.toggleDay = function(dateStr) {
         if (selectedDays.has(dateStr)) selectedDays.delete(dateStr);
         else selectedDays.add(dateStr);
         renderCalendar();
         calculate();
+        saveState();
     };
 
-    window.clearAll = function () {
+    window.clearAll = function() {
         selectedDays.clear();
         renderCalendar();
         calculate();
+        saveState();
     };
 
     function renderCalendar() {
@@ -300,19 +411,17 @@ document.addEventListener('DOMContentLoaded', () => {
             new Date(year, month, 1).toLocaleDateString('fr-FR', { month: 'long', year: 'numeric' })
         );
 
-        // Header row
         let html = '';
         DAY_LABELS.forEach(d => { html += `<div class="cal-header">${d}</div>`; });
 
-        const firstDow    = (new Date(year, month, 1).getDay() + 6) % 7; // 0=Mon
+        const firstDow    = (new Date(year, month, 1).getDay() + 6) % 7;
         const daysInMonth = new Date(year, month + 1, 0).getDate();
         const todayStr    = dateToStr(today);
 
-        // ── Leading overflow: last days of the previous month ──────────────
+        // Jours du mois précédent
         const prevYear  = month === 0 ? year - 1 : year;
         const prevMonth = month === 0 ? 11 : month - 1;
         const prevLast  = new Date(prevYear, prevMonth + 1, 0).getDate();
-
         for (let i = 0; i < firstDow; i++) {
             const d       = prevLast - firstDow + 1 + i;
             const dateStr = `${prevYear}-${String(prevMonth + 1).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
@@ -325,7 +434,7 @@ document.addEventListener('DOMContentLoaded', () => {
             html += `<div class="${cls}" ${click}>${d}</div>`;
         }
 
-        // ── Current month ──────────────────────────────────────────────────
+        // Jours du mois courant
         for (let d = 1; d <= daysInMonth; d++) {
             const dateStr = `${year}-${String(month + 1).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
             const date    = strToDate(dateStr);
@@ -333,23 +442,20 @@ document.addEventListener('DOMContentLoaded', () => {
             const isToday = dateStr === todayStr;
             const isSel   = selectedDays.has(dateStr);
             const isWE    = date.getDay() === 0 || date.getDay() === 6;
-
             let cls = 'cal-day';
             if (isPast && !isToday) cls += ' cal-past';
             if (isToday)  cls += ' cal-today';
             if (isSel)    cls += ' cal-selected';
             if (isWE && !isSel) cls += ' cal-weekend';
-
             const click = (isPast && !isToday) ? '' : `onclick="toggleDay('${dateStr}')"`;
             html += `<div class="${cls}" ${click}>${d}</div>`;
         }
 
-        // ── Trailing overflow: first days of next month to fill the row ────
+        // Jours du mois suivant
         const nextYear  = month === 11 ? year + 1 : year;
         const nextMonth = month === 11 ? 0 : month + 1;
         const filled    = firstDow + daysInMonth;
         const trailing  = filled % 7 === 0 ? 0 : 7 - (filled % 7);
-
         for (let d = 1; d <= trailing; d++) {
             const dateStr = `${nextYear}-${String(nextMonth + 1).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
             const isSel   = selectedDays.has(dateStr);
@@ -360,7 +466,6 @@ document.addEventListener('DOMContentLoaded', () => {
 
         calGrid.innerHTML = html;
 
-        // Count badge & clear button
         const n = selectedDays.size;
         selectedCountEl.textContent = n > 0 ? `${n} jour${n > 1 ? 's' : ''}` : '';
         selectedCountEl.style.display = n > 0 ? 'inline' : 'none';
@@ -368,13 +473,6 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     // ─── SNCF Calculation ─────────────────────────────────────────────────────
-    //
-    // Rules applied:
-    //   • Per real ISO week (Mon→Sun): if weekly pass < days×day_price → buy weekly
-    //   • Each ISO week is attributed to the calendar month of its Monday
-    //   • Per calendar month: if monthly pass ≤ sum of weekly/daily costs → buy monthly
-    //   • Total = sum of optimal cost per month
-    //
     function calculate() {
         const P_month = parseFloat(priceMonthInput.value) || 0;
         const P_week  = parseFloat(priceWeekInput.value)  || 0;
@@ -382,76 +480,68 @@ document.addEventListener('DOMContentLoaded', () => {
 
         if (selectedDays.size === 0) {
             finalPriceEl.innerText = '—';
-            recommendationEl.innerHTML = '<i class="fa-regular fa-calendar-days"></i> Clique sur tes jours sur site';
+            recommendationEl.innerHTML = '<i class="fa-regular fa-calendar-days"></i> Sélectionne tes gares et tes jours';
             recommendationEl.style.background = 'rgba(255,255,255,0.06)';
             savingsEl.innerText = '';
             funFactEl.innerText = '';
             detailsSection.innerHTML = '';
-            monthlyCostEl.innerText = `${P_month}€`;
+            monthlyCostEl.innerText = P_month ? `${P_month}€` : '—';
             return;
         }
 
-        // Step 1 — Group selected days by ISO week
-        const weekMap = {}; // weekKey → { count, monday }
+        if (!P_day && !P_week && !P_month) {
+            finalPriceEl.innerText = '—';
+            recommendationEl.innerHTML = '<i class="fa-solid fa-pen"></i> Saisis tes tarifs pour voir le résultat';
+            recommendationEl.style.background = 'rgba(255,255,255,0.06)';
+            savingsEl.innerText = ''; funFactEl.innerText = ''; detailsSection.innerHTML = '';
+            monthlyCostEl.innerText = '—';
+            return;
+        }
+
+        // Grouper par semaine ISO
+        const weekMap = {};
         selectedDays.forEach(dateStr => {
             const wk = getISOWeekKey(dateStr);
             if (!weekMap[wk]) weekMap[wk] = { count: 0, monday: getMondayOfWeek(dateStr) };
             weekMap[wk].count++;
         });
 
-        // Step 2 — Compute cost per week, bucket into the month of each week's Monday
-        const monthMap = {}; // 'YYYY-MM' → { flexCost, weeks[] }
+        // Coût par semaine → attribuer au mois du lundi
+        const monthMap = {};
         Object.entries(weekMap).forEach(([wk, { count, monday }]) => {
-            const monthKey = monday.slice(0, 7); // 'YYYY-MM'
+            const mk = monday.slice(0, 7);
             const useWeekly = P_week > 0 && P_week < count * P_day;
             const cost   = useWeekly ? P_week : count * P_day;
-            const method = useWeekly
-                ? 'Abonnement Hebdo'
-                : count === 1 ? '1 Ticket journée' : `${count} Tickets journée`;
-
-            if (!monthMap[monthKey]) monthMap[monthKey] = { flexCost: 0, weeks: [] };
-            monthMap[monthKey].flexCost += cost;
-            monthMap[monthKey].weeks.push({ wk, count, cost, method });
+            const method = useWeekly ? 'Abonnement Hebdo' : count === 1 ? '1 Ticket' : `${count} Tickets`;
+            if (!monthMap[mk]) monthMap[mk] = { flexCost: 0, weeks: [] };
+            monthMap[mk].flexCost += cost;
+            monthMap[mk].weeks.push({ wk, count, cost, method });
         });
 
-        // Step 3 — Per-month: flex vs mensuel
+        // Optimisation mensuelle
         let totalOptimal = 0;
         const strategy = [];
-
         Object.entries(monthMap).sort().forEach(([mk, { flexCost, weeks }]) => {
             const useMonthly = P_month > 0 && P_month <= flexCost;
             const optimal    = useMonthly ? P_month : flexCost;
             totalOptimal += optimal;
-            strategy.push({
-                mk,
-                weeks: weeks.sort((a, b) => a.wk.localeCompare(b.wk)),
-                flexCost,
-                useMonthly,
-                optimal,
-            });
+            strategy.push({ mk, weeks: weeks.sort((a, b) => a.wk.localeCompare(b.wk)), flexCost, useMonthly, optimal });
         });
 
         const numMonths    = strategy.length;
         const totalMonthly = P_month * numMonths;
         const savings      = totalMonthly - totalOptimal;
 
-        // ── Update result panel ───────────────────────────────────────────────
+        // Affichage
         finalPriceEl.innerText = fmtEur(totalOptimal);
+        monthlyCostEl.innerText = numMonths > 1 ? `${totalMonthly}€  (${numMonths} × ${P_month}€)` : `${P_month}€`;
 
-        monthlyCostEl.innerText = numMonths > 1
-            ? `${totalMonthly}€  (${numMonths} × ${P_month}€)`
-            : `${P_month}€`;
-
-        // Recommendation badge
         const allMonthly = strategy.every(m => m.useMonthly);
         const allFlex    = strategy.every(m => !m.useMonthly);
-
         if (allMonthly) {
             recommendationEl.innerHTML = "<i class='fa-solid fa-id-card'></i> Prends le Mensuel !";
             recommendationEl.style.background = "linear-gradient(135deg, #f59e0b, #d97706)";
-            savingsEl.innerText = savings < 0
-                ? `Le flex te coûterait ${Math.abs(savings).toFixed(0)}€ de plus.`
-                : '';
+            savingsEl.innerText = savings < 0 ? `Le flex te coûterait ${Math.abs(savings).toFixed(0)}€ de plus.` : '';
         } else if (allFlex) {
             recommendationEl.innerHTML = "<i class='fa-solid fa-shuffle'></i> Mix Flex (Hebdo + Tickets)";
             recommendationEl.style.background = "linear-gradient(135deg, var(--primary), var(--secondary))";
@@ -461,16 +551,12 @@ document.addEventListener('DOMContentLoaded', () => {
         } else {
             recommendationEl.innerHTML = "<i class='fa-solid fa-code-branch'></i> Stratégie Mixte";
             recommendationEl.style.background = "linear-gradient(135deg, #6366f1, #10b981)";
-            savingsEl.innerHTML = savings > 0.5
-                ? `Tu économises <span class="savings-tag">-${savings.toFixed(0)}€</span> au global`
-                : '';
+            savingsEl.innerHTML = savings > 0.5 ? `Tu économises <span class="savings-tag">-${savings.toFixed(0)}€</span> au global` : '';
         }
 
-        // Detailed breakdown
         let html = '';
-        strategy.forEach(({ mk, weeks, flexCost, useMonthly, optimal }) => {
-            html += `
-            <div class="detail-month">
+        strategy.forEach(({ mk, weeks, flexCost, useMonthly }) => {
+            html += `<div class="detail-month">
                 <div class="detail-month-header">
                     <span>${formatMonthKey(mk)}</span>
                     <span class="detail-month-tag ${useMonthly ? 'tag-monthly' : 'tag-flex'}">
@@ -478,38 +564,25 @@ document.addEventListener('DOMContentLoaded', () => {
                     </span>
                 </div>
                 <ul class="details-list">`;
-
             weeks.forEach(({ wk, count, cost, method }) => {
-                const weekNum = wk.split('-W')[1];
-                html += `
-                <li class="details-item">
-                    <span>Sem. ${weekNum} &nbsp;<small style="color:var(--text-muted)">${count}j</small></span>
+                html += `<li class="details-item">
+                    <span>Sem. ${wk.split('-W')[1]} <small style="color:var(--text-muted)">${count}j</small></span>
                     <span class="detail-method">${method} <span class="detail-cost">${cost}€</span></span>
                 </li>`;
             });
-
             if (useMonthly) {
-                html += `
-                <li class="details-item details-saving">
+                html += `<li class="details-item details-saving">
                     <span>→ Flex aurait coûté : ${flexCost}€</span>
                     <span style="color:var(--accent)">Économie : ${(flexCost - P_month).toFixed(0)}€</span>
                 </li>`;
             }
-
             html += `</ul></div>`;
         });
-
-        html += `
-        <div class="details-total">
-            <span>Total Optimal</span>
-            <span>${fmtEur(totalOptimal)}</span>
-        </div>`;
-
+        html += `<div class="details-total"><span>Total Optimal</span><span>${fmtEur(totalOptimal)}</span></div>`;
         detailsSection.innerHTML = html;
         detailsSection.style.display = 'block';
 
         updateFunFact(savings);
-        saveState();
     }
 
     function fmtEur(n) {
@@ -522,31 +595,25 @@ document.addEventListener('DOMContentLoaded', () => {
         "De quoi te payer N cafés à la machine.",
         "Tu pourrais acheter N paquets de pâtes avec ça.",
         "Investis ces économies dans le Bitcoin (ou pas).",
-        "C'est N% de ton loyer (si tu vis dans une boîte à chaussures).",
     ];
-
     function updateFunFact(savings) {
         if (savings < 5) {
-            funFactEl.innerText = savings < 0
-                ? "Pas d'économies sur cette config, c'est la vie."
-                : "Pas de grosses économies, mais c'est le principe qui compte.";
+            funFactEl.innerText = savings < 0 ? "Pas d'économies sur cette config." : '';
             return;
         }
         const kebabs = Math.floor(savings / 7);
-        const idx = Math.floor(Math.random() * funFacts.length);
-        let text = funFacts[idx].replace(/N/g, kebabs);
-        if (text.includes('Bitcoin')) text = `Investis ces ${Math.round(savings)}€ dans le Shiba Inu (non conseil financier).`;
-        if (text.includes('%')) text = text.replace(/(\d+)%/, Math.round((savings / 500) * 100) + '%');
+        const text = funFacts[Math.floor(Math.random() * funFacts.length)].replace(/N/g, kebabs);
         funFactEl.innerText = text;
     }
 
     // ─── Event listeners ──────────────────────────────────────────────────────
     [priceMonthInput, priceWeekInput, priceDayInput].forEach(inp => {
-        inp.addEventListener('input', calculate);
+        inp.addEventListener('input', onPriceChange);
     });
 
     // ─── Init ─────────────────────────────────────────────────────────────────
     loadState();
     renderCalendar();
+    updatePriceStatus();
     calculate();
 });

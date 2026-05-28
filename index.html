@@ -28,7 +28,7 @@
             <div class="card">
                 <h2><i class="fa-solid fa-sliders"></i> Tes Tarifs & Planning</h2>
 
-                <!-- ── Station search ───────────────────────────────────── -->
+                <!-- ── Trajet ────────────────────────────────────────────── -->
                 <div class="station-section">
                     <div class="station-row">
 
@@ -39,7 +39,7 @@
                             </label>
                             <div class="station-input-wrapper">
                                 <input type="text" id="stationFrom"
-                                       placeholder="Ex : Nancy"
+                                       placeholder="Gare de départ…"
                                        autocomplete="off" spellcheck="false">
                                 <button class="btn-clear-station" id="clearFrom"
                                         onclick="clearStation('from')" style="display:none">
@@ -60,7 +60,7 @@
                             </label>
                             <div class="station-input-wrapper">
                                 <input type="text" id="stationTo"
-                                       placeholder="Ex : Metz-Ville"
+                                       placeholder="Gare d'arrivée…"
                                        autocomplete="off" spellcheck="false">
                                 <button class="btn-clear-station" id="clearTo"
                                         onclick="clearStation('to')" style="display:none">
@@ -72,49 +72,46 @@
 
                     </div>
 
-                    <!-- Status line (auto-fill / not found / manual) -->
+                    <!-- Statut mémoire / CTA -->
                     <div id="tariffStatus" class="tariff-status"></div>
                 </div>
 
                 <!-- ── Profil voyageur ─────────────────────────────────── -->
                 <div class="profile-selector">
-                    <button class="profile-btn active" id="btnAdult" onclick="setProfile('adult')">
-                        <i class="fa-solid fa-person"></i> Adulte
+                    <button class="profile-btn active" id="btnAdult"   onclick="setProfile('adult')">
+                        +26 ans
                     </button>
-                    <button class="profile-btn" id="btnYoung" onclick="setProfile('young')">
-                        <i class="fa-solid fa-graduation-cap"></i> −26 ans / Étudiant
+                    <button class="profile-btn"        id="btnYoung"   onclick="setProfile('young')">
+                        −26 ans
+                    </button>
+                    <button class="profile-btn"        id="btnSenior"  onclick="setProfile('senior')">
+                        Senior
+                    </button>
+                    <button class="profile-btn"        id="btnChomeur" onclick="setProfile('chomeur')">
+                        Dem. d'emploi
                     </button>
                 </div>
 
-                <!-- ── Prix (auto-remplis ou manuels) ──────────────────── -->
+                <!-- ── Prix ────────────────────────────────────────────── -->
                 <div class="prices-grid">
                     <div class="input-group">
-                        <label>
-                            Mensuel
-                            <span class="auto-badge" id="badgeMonth" style="display:none">auto</span>
-                        </label>
+                        <label>Mensuel</label>
                         <div class="price-input-container">
-                            <input type="number" id="priceMonth" value="89" min="0" step="0.1">
+                            <input type="number" id="priceMonth" placeholder="—" min="0" step="0.1">
                             <span class="currency-symbol">€</span>
                         </div>
                     </div>
                     <div class="input-group">
-                        <label>
-                            Hebdo
-                            <span class="auto-badge" id="badgeWeek" style="display:none">auto</span>
-                        </label>
+                        <label>Hebdo</label>
                         <div class="price-input-container">
-                            <input type="number" id="priceWeek" value="25" min="0" step="0.1">
+                            <input type="number" id="priceWeek" placeholder="—" min="0" step="0.1">
                             <span class="currency-symbol">€</span>
                         </div>
                     </div>
                     <div class="input-group">
-                        <label>
-                            Jour
-                            <span class="auto-badge" id="badgeDay" style="display:none">auto</span>
-                        </label>
+                        <label>Jour</label>
                         <div class="price-input-container">
-                            <input type="number" id="priceDay" value="18" min="0" step="0.1">
+                            <input type="number" id="priceDay" placeholder="—" min="0" step="0.1">
                             <span class="currency-symbol">€</span>
                         </div>
                     </div>
@@ -167,7 +164,7 @@
                     </div>
 
                     <div class="comparison" style="margin-top: 1.5rem;">
-                        <p>VS Abonnement Mensuel : <span id="monthlyCostDisplay">89€</span></p>
+                        <p>VS Abonnement Mensuel : <span id="monthlyCostDisplay">—</span></p>
                         <p id="savingsText" style="color: var(--accent); margin-top: 5px; font-weight: bold;"></p>
                     </div>
 
@@ -184,9 +181,6 @@
         </footer>
     </div>
 
-    <!-- Data files loaded before script.js (disponibles en global) -->
-    <script src="data/stations.js"></script>
-    <script src="data/tariffs.js"></script>
     <script src="script.js"></script>
 </body>
 
