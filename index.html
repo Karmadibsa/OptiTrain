@@ -28,49 +28,121 @@
             <div class="card">
                 <h2><i class="fa-solid fa-sliders"></i> Tes Tarifs & Planning</h2>
 
+                <!-- ── Station search ───────────────────────────────────── -->
+                <div class="station-section">
+                    <div class="station-row">
+
+                        <div class="station-group">
+                            <label class="station-label">
+                                <i class="fa-solid fa-circle-dot" style="color:#6366f1;font-size:.7rem"></i>
+                                Départ
+                            </label>
+                            <div class="station-input-wrapper">
+                                <input type="text" id="stationFrom"
+                                       placeholder="Ex : Nancy"
+                                       autocomplete="off" spellcheck="false">
+                                <button class="btn-clear-station" id="clearFrom"
+                                        onclick="clearStation('from')" style="display:none">
+                                    <i class="fa-solid fa-xmark"></i>
+                                </button>
+                                <div class="station-dropdown" id="dropdownFrom"></div>
+                            </div>
+                        </div>
+
+                        <button class="btn-swap" onclick="swapStations()" title="Inverser les gares">
+                            <i class="fa-solid fa-arrow-right-arrow-left"></i>
+                        </button>
+
+                        <div class="station-group">
+                            <label class="station-label">
+                                <i class="fa-solid fa-location-dot" style="color:#ec4899;font-size:.7rem"></i>
+                                Arrivée
+                            </label>
+                            <div class="station-input-wrapper">
+                                <input type="text" id="stationTo"
+                                       placeholder="Ex : Metz-Ville"
+                                       autocomplete="off" spellcheck="false">
+                                <button class="btn-clear-station" id="clearTo"
+                                        onclick="clearStation('to')" style="display:none">
+                                    <i class="fa-solid fa-xmark"></i>
+                                </button>
+                                <div class="station-dropdown" id="dropdownTo"></div>
+                            </div>
+                        </div>
+
+                    </div>
+
+                    <!-- Status line (auto-fill / not found / manual) -->
+                    <div id="tariffStatus" class="tariff-status"></div>
+                </div>
+
+                <!-- ── Prix (auto-remplis ou manuels) ──────────────────── -->
                 <div class="prices-grid">
                     <div class="input-group">
-                        <label>Mensuel</label>
+                        <label>
+                            Mensuel
+                            <span class="auto-badge" id="badgeMonth" style="display:none">auto</span>
+                        </label>
                         <div class="price-input-container">
-                            <input type="number" id="priceMonth" value="89">
+                            <input type="number" id="priceMonth" value="89" min="0" step="0.1">
                             <span class="currency-symbol">€</span>
                         </div>
                     </div>
                     <div class="input-group">
-                        <label>Hebdo</label>
+                        <label>
+                            Hebdo
+                            <span class="auto-badge" id="badgeWeek" style="display:none">auto</span>
+                        </label>
                         <div class="price-input-container">
-                            <input type="number" id="priceWeek" value="25">
+                            <input type="number" id="priceWeek" value="25" min="0" step="0.1">
                             <span class="currency-symbol">€</span>
                         </div>
                     </div>
                     <div class="input-group">
-                        <label>Jour</label>
+                        <label>
+                            Jour
+                            <span class="auto-badge" id="badgeDay" style="display:none">auto</span>
+                        </label>
                         <div class="price-input-container">
-                            <input type="number" id="priceDay" value="18">
+                            <input type="number" id="priceDay" value="18" min="0" step="0.1">
                             <span class="currency-symbol">€</span>
                         </div>
                     </div>
                 </div>
 
+                <!-- ── Calendrier ───────────────────────────────────────── -->
                 <div class="config-header">
-                    <label style="margin:0">Tes jours sur site <span id="selectedCount" class="count-badge"></span></label>
+                    <label style="margin:0">
+                        Tes jours sur site
+                        <span id="selectedCount" class="count-badge"></span>
+                    </label>
                     <button class="btn-clear" onclick="clearAll()" id="clearBtn" style="display:none">
                         <i class="fa-solid fa-rotate-left"></i> Réinitialiser
                     </button>
                 </div>
 
                 <div class="calendar-nav">
-                    <button class="btn-circle" onclick="prevMonth()"><i class="fa-solid fa-chevron-left"></i></button>
+                    <button class="btn-circle" onclick="prevMonth()">
+                        <i class="fa-solid fa-chevron-left"></i>
+                    </button>
                     <span id="calMonthLabel" class="cal-month-label"></span>
-                    <button class="btn-circle" onclick="nextMonth()"><i class="fa-solid fa-chevron-right"></i></button>
+                    <button class="btn-circle" onclick="nextMonth()">
+                        <i class="fa-solid fa-chevron-right"></i>
+                    </button>
                 </div>
 
                 <div id="calendarGrid" class="calendar-grid"></div>
 
                 <div class="cal-legend">
-                    <div class="cal-legend-item"><div class="cal-legend-dot"></div>Sélectionné</div>
-                    <div class="cal-legend-item"><div class="cal-legend-dot dot-today"></div>Aujourd'hui</div>
-                    <div class="cal-legend-item"><div class="cal-legend-dot dot-weekend"></div>Weekend</div>
+                    <div class="cal-legend-item">
+                        <div class="cal-legend-dot"></div>Sélectionné
+                    </div>
+                    <div class="cal-legend-item">
+                        <div class="cal-legend-dot dot-today"></div>Aujourd'hui
+                    </div>
+                    <div class="cal-legend-item">
+                        <div class="cal-legend-dot dot-weekend"></div>Weekend
+                    </div>
                 </div>
             </div>
 
@@ -78,10 +150,10 @@
             <div class="card result-box">
                 <h2><i class="fa-solid fa-wallet"></i> Verdict</h2>
                 <div style="margin-top: 1rem; flex-grow: 1;">
-                    <div class="big-price" id="finalPrice">0€</div>
+                    <div class="big-price" id="finalPrice">—</div>
 
                     <div id="recommendationText" class="recommendation-badge">
-                        Calcul en cours...
+                        <i class="fa-regular fa-calendar-days"></i> Sélectionne tes gares et tes jours
                     </div>
 
                     <div class="comparison" style="margin-top: 1.5rem;">
@@ -92,10 +164,7 @@
                     <div id="funFact"
                         style="font-size: 0.85rem; font-style: italic; color: #818cf8; min-height: 1.2em;"></div>
 
-                    <!-- Details Section (Always Visible) -->
-                    <div id="detailsSection" class="details-section">
-                        <!-- Details injected here via JS -->
-                    </div>
+                    <div id="detailsSection" class="details-section"></div>
                 </div>
             </div>
         </div>
@@ -105,6 +174,9 @@
         </footer>
     </div>
 
+    <!-- Data files loaded before script.js (disponibles en global) -->
+    <script src="data/stations.js"></script>
+    <script src="data/tariffs.js"></script>
     <script src="script.js"></script>
 </body>
 

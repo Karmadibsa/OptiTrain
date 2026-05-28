@@ -3,6 +3,10 @@ document.addEventListener('DOMContentLoaded', () => {
     // ─── State ────────────────────────────────────────────────────────────────
     let selectedDays = new Set(); // Set of 'YYYY-MM-DD' strings
 
+    // Station state  { id, name } or null
+    let stationFrom = null;
+    let stationTo   = null;
+
     const today = new Date();
     today.setHours(0, 0, 0, 0);
 
@@ -23,6 +27,14 @@ document.addEventListener('DOMContentLoaded', () => {
     const savingsEl       = document.getElementById('savingsText');
     const funFactEl       = document.getElementById('funFact');
     const detailsSection  = document.getElementById('detailsSection');
+    // Station search DOM
+    const inputFrom    = document.getElementById('stationFrom');
+    const inputTo      = document.getElementById('stationTo');
+    const dropFrom     = document.getElementById('dropdownFrom');
+    const dropTo       = document.getElementById('dropdownTo');
+    const clearFromBtn = document.getElementById('clearFrom');
+    const clearToBtn   = document.getElementById('clearTo');
+    const tariffStatus = document.getElementById('tariffStatus');
 
     // ─── Date helpers ─────────────────────────────────────────────────────────
     function dateToStr(date) {
@@ -66,10 +78,142 @@ document.addEventListener('DOMContentLoaded', () => {
         );
     }
 
+    // ─── Station search ───────────────────────────────────────────────────────
+
+    // Normalize : retire accents, minuscules — pour matching souple
+    function norm(s) {
+        return s.toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '');
+    }
+
+    function filterStations(query) {
+        if (query.length < 2) return [];
+        const q = norm(query);
+        return STATIONS_DATA.filter(s => norm(s.name).includes(q)).slice(0, 7);
+    }
+
+    function openDropdown(drop, results, onSelect) {
+        if (!results.length) { drop.innerHTML = ''; drop.classList.remove('open'); return; }
+        drop.innerHTML = results.map(s => `
+            <div class="station-option" data-id="${s.id}">
+                <span class="option-name">${s.name}</span>
+                <span class="option-region">${s.region}</span>
+            </div>`).join('');
+        drop.classList.add('open');
+        drop.querySelectorAll('.station-option').forEach(el => {
+            el.addEventListener('mousedown', e => {
+                e.preventDefault();
+                const station = STATIONS_DATA.find(s => s.id === el.dataset.id);
+                if (station) onSelect(station);
+            });
+        });
+    }
+
+    function closeAllDropdowns() {
+        dropFrom.classList.remove('open');
+        dropTo.classList.remove('open');
+    }
+
+    function applyTariff() {
+        if (!stationFrom || !stationTo) return;
+        const t = getTariff(stationFrom.id, stationTo.id);
+        if (t) {
+            priceMonthInput.value = t.month;
+            priceWeekInput.value  = t.week;
+            priceDayInput.value   = t.day;
+            ['badgeMonth', 'badgeWeek', 'badgeDay'].forEach(id => {
+                document.getElementById(id).style.display = 'inline';
+            });
+            tariffStatus.className = 'tariff-status status-ok';
+            tariffStatus.innerHTML =
+                `<i class="fa-solid fa-circle-check"></i> Tarifs TER injectés pour <strong>${stationFrom.name} → ${stationTo.name}</strong>
+                 <a href="https://www.ter.sncf.com/grand-est/offres/abonnements-ter" target="_blank" rel="noopener" class="verify-link">Vérifier</a>`;
+            calculate();
+        } else {
+            ['badgeMonth', 'badgeWeek', 'badgeDay'].forEach(id => {
+                document.getElementById(id).style.display = 'none';
+            });
+            tariffStatus.className = 'tariff-status status-warn';
+            tariffStatus.innerHTML =
+                `<i class="fa-solid fa-triangle-exclamation"></i> Liaison <strong>${stationFrom.name} → ${stationTo.name}</strong> non répertoriée — saisis les prix manuellement.`;
+        }
+    }
+
+    function clearTariffBadges() {
+        ['badgeMonth', 'badgeWeek', 'badgeDay'].forEach(id => {
+            document.getElementById(id).style.display = 'none';
+        });
+        tariffStatus.className = 'tariff-status';
+        tariffStatus.innerHTML = '';
+    }
+
+    function selectStation(side, station) {
+        if (side === 'from') {
+            stationFrom      = station;
+            inputFrom.value  = station.name;
+            clearFromBtn.style.display = 'flex';
+            dropFrom.classList.remove('open');
+        } else {
+            stationTo       = station;
+            inputTo.value   = station.name;
+            clearToBtn.style.display = 'flex';
+            dropTo.classList.remove('open');
+        }
+        applyTariff();
+        saveState();
+    }
+
+    window.clearStation = function(side) {
+        if (side === 'from') {
+            stationFrom = null;
+            inputFrom.value = '';
+            clearFromBtn.style.display = 'none';
+        } else {
+            stationTo = null;
+            inputTo.value = '';
+            clearToBtn.style.display = 'none';
+        }
+        clearTariffBadges();
+        saveState();
+    };
+
+    window.swapStations = function() {
+        [stationFrom, stationTo] = [stationTo, stationFrom];
+        inputFrom.value = stationFrom ? stationFrom.name : '';
+        inputTo.value   = stationTo   ? stationTo.name   : '';
+        clearFromBtn.style.display = stationFrom ? 'flex' : 'none';
+        clearToBtn.style.display   = stationTo   ? 'flex' : 'none';
+        clearTariffBadges();
+        applyTariff();
+        saveState();
+    };
+
+    // Input listeners — debounce 150ms
+    let debounceFrom, debounceTo;
+    inputFrom.addEventListener('input', () => {
+        stationFrom = null; clearFromBtn.style.display = 'none'; clearTariffBadges();
+        clearTimeout(debounceFrom);
+        debounceFrom = setTimeout(() => {
+            openDropdown(dropFrom, filterStations(inputFrom.value),
+                s => selectStation('from', s));
+        }, 150);
+    });
+    inputTo.addEventListener('input', () => {
+        stationTo = null; clearToBtn.style.display = 'none'; clearTariffBadges();
+        clearTimeout(debounceTo);
+        debounceTo = setTimeout(() => {
+            openDropdown(dropTo, filterStations(inputTo.value),
+                s => selectStation('to', s));
+        }, 150);
+    });
+    inputFrom.addEventListener('blur', () => setTimeout(closeAllDropdowns, 150));
+    inputTo.addEventListener('blur',   () => setTimeout(closeAllDropdowns, 150));
+
     // ─── Persistence ──────────────────────────────────────────────────────────
     function saveState() {
         localStorage.setItem('optitrain_data', JSON.stringify({
             selectedDays: Array.from(selectedDays),
+            stationFrom,
+            stationTo,
             prices: {
                 month: priceMonthInput.value,
                 week:  priceWeekInput.value,
@@ -86,11 +230,22 @@ document.addEventListener('DOMContentLoaded', () => {
             if (Array.isArray(parsed.selectedDays)) {
                 parsed.selectedDays.forEach(d => selectedDays.add(d));
             }
+            if (parsed.stationFrom) {
+                stationFrom = parsed.stationFrom;
+                inputFrom.value = stationFrom.name;
+                clearFromBtn.style.display = 'flex';
+            }
+            if (parsed.stationTo) {
+                stationTo = parsed.stationTo;
+                inputTo.value = stationTo.name;
+                clearToBtn.style.display = 'flex';
+            }
             if (parsed.prices) {
                 if (parsed.prices.month) priceMonthInput.value = parsed.prices.month;
                 if (parsed.prices.week)  priceWeekInput.value  = parsed.prices.week;
                 if (parsed.prices.day)   priceDayInput.value   = parsed.prices.day;
             }
+            if (stationFrom && stationTo) applyTariff();
         } catch (e) { /* ignore corrupt storage */ }
     }
 
