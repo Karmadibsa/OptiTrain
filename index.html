@@ -53,12 +53,24 @@
                 </div>
 
                 <div class="config-header">
-                    <label style="margin:0">Ton agenda du mois (Jours sur site)</label>
-                    <button class="add-week-btn" onclick="addWeek()"><i class="fa-solid fa-plus"></i> Semaine</button>
+                    <label style="margin:0">Tes jours sur site <span id="selectedCount" class="count-badge"></span></label>
+                    <button class="btn-clear" onclick="clearAll()" id="clearBtn" style="display:none">
+                        <i class="fa-solid fa-rotate-left"></i> Réinitialiser
+                    </button>
                 </div>
 
-                <div id="weeksContainer" class="weeks-container">
-                    <!-- Weeks will be injected here via JS -->
+                <div class="calendar-nav">
+                    <button class="btn-circle" onclick="prevMonth()"><i class="fa-solid fa-chevron-left"></i></button>
+                    <span id="calMonthLabel" class="cal-month-label"></span>
+                    <button class="btn-circle" onclick="nextMonth()"><i class="fa-solid fa-chevron-right"></i></button>
+                </div>
+
+                <div id="calendarGrid" class="calendar-grid"></div>
+
+                <div class="cal-legend">
+                    <div class="cal-legend-item"><div class="cal-legend-dot"></div>Sélectionné</div>
+                    <div class="cal-legend-item"><div class="cal-legend-dot dot-today"></div>Aujourd'hui</div>
+                    <div class="cal-legend-item"><div class="cal-legend-dot dot-weekend"></div>Weekend</div>
                 </div>
             </div>
 

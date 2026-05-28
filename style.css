@@ -195,7 +195,7 @@ input[type="number"]:focus {
     box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.2);
 }
 
-/* Config Header & Add Week Button */
+/* Config Header */
 .config-header {
     display: flex;
     justify-content: space-between;
@@ -205,64 +205,54 @@ input[type="number"]:focus {
     border-bottom: 1px solid rgba(255, 255, 255, 0.05);
 }
 
-.add-week-btn {
+/* Selected count badge */
+.count-badge {
     background: var(--primary);
-    border: none;
-    color: white;
-    padding: 8px 20px;
-    border-radius: 12px;
+    color: #fff;
+    font-size: 0.68rem;
+    font-weight: 700;
+    padding: 2px 9px;
+    border-radius: 20px;
+    margin-left: 8px;
+    vertical-align: middle;
+}
+
+/* Clear / reset button */
+.btn-clear {
+    background: rgba(239, 68, 68, 0.18);
+    border: 1px solid rgba(239, 68, 68, 0.3);
+    color: #f87171;
+    padding: 6px 14px;
+    border-radius: 10px;
     cursor: pointer;
-    font-size: 0.9rem;
+    font-size: 0.78rem;
+    font-family: 'Outfit', sans-serif;
     transition: all 0.2s;
     display: flex;
     align-items: center;
-    gap: 8px;
-    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+    gap: 6px;
 }
 
-.add-week-btn:hover {
-    background: var(--primary-hover);
-    transform: translateY(-2px);
-    box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+.btn-clear:hover {
+    background: rgba(239, 68, 68, 0.35);
 }
 
-.weeks-container {
-    max-height: 400px;
-    overflow-y: auto;
-    padding-right: 5px;
-}
-
-/* Scrollbar for container */
-.weeks-container::-webkit-scrollbar {
-    width: 6px;
-}
-
-.weeks-container::-webkit-scrollbar-thumb {
-    background-color: rgba(255, 255, 255, 0.1);
-    border-radius: 10px;
-}
-
-.week-row {
+/* Calendar navigation */
+.calendar-nav {
     display: flex;
     align-items: center;
     justify-content: space-between;
-    margin-bottom: 10px;
-    padding: 12px;
-    background: rgba(255, 255, 255, 0.03);
-    border-radius: 12px;
-    transition: background 0.2s;
+    margin-bottom: 0.75rem;
 }
 
-.week-row:hover {
-    background: rgba(255, 255, 255, 0.05);
+.cal-month-label {
+    font-size: 0.95rem;
+    font-weight: 700;
+    color: var(--text-main);
+    letter-spacing: 0.01em;
 }
 
-.week-controls {
-    display: flex;
-    align-items: center;
-    gap: 15px;
-}
-
+/* Navigation circle buttons (shared with calendar) */
 .btn-circle {
     width: 32px;
     height: 32px;
@@ -283,21 +273,125 @@ input[type="number"]:focus {
     transform: scale(1.1);
 }
 
-.days-count {
-    font-weight: 800;
-    font-size: 1.1rem;
-    min-width: 25px;
+/* Calendar grid */
+.calendar-grid {
+    display: grid;
+    grid-template-columns: repeat(7, 1fr);
+    gap: 3px;
+    margin-bottom: 0.6rem;
+}
+
+.cal-header {
     text-align: center;
+    font-size: 0.68rem;
+    font-weight: 700;
+    color: var(--text-muted);
+    padding: 4px 0 7px;
+    letter-spacing: 0.06em;
 }
 
-.btn-delete {
-    background: rgba(239, 68, 68, 0.2);
-    color: #ef4444;
+.cal-day, .cal-empty {
+    aspect-ratio: 1 / 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 7px;
+    font-size: 0.78rem;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.13s ease;
+    background: rgba(255, 255, 255, 0.03);
+    border: 1px solid transparent;
+    user-select: none;
 }
 
-.btn-delete:hover {
-    background: #ef4444;
-    color: white;
+.cal-empty {
+    background: transparent;
+    cursor: default;
+    border: none;
+}
+
+.cal-day:hover:not(.cal-past) {
+    background: rgba(99, 102, 241, 0.28);
+    border-color: rgba(99, 102, 241, 0.45);
+    transform: scale(1.08);
+}
+
+.cal-past {
+    color: rgba(255, 255, 255, 0.14);
+    cursor: not-allowed;
+    background: transparent;
+}
+
+.cal-today {
+    border-color: var(--primary) !important;
+    color: var(--primary);
+    font-weight: 800;
+}
+
+.cal-selected {
+    background: var(--primary) !important;
+    color: #fff !important;
+    font-weight: 700;
+    border-color: var(--primary) !important;
+    box-shadow: 0 0 14px rgba(99, 102, 241, 0.45);
+}
+
+.cal-weekend:not(.cal-selected) {
+    color: #94a3b8;
+}
+
+/* Overflow days from adjacent months */
+.cal-overflow {
+    color: rgba(255, 255, 255, 0.22);
+    background: transparent;
+    border-color: transparent;
+}
+
+.cal-overflow:hover:not(.cal-past) {
+    color: rgba(255, 255, 255, 0.65);
+    background: rgba(99, 102, 241, 0.18);
+    border-color: rgba(99, 102, 241, 0.3);
+    transform: scale(1.06);
+}
+
+.cal-overflow.cal-selected {
+    background: rgba(99, 102, 241, 0.55) !important;
+    color: #fff !important;
+    border-color: var(--primary) !important;
+    box-shadow: 0 0 10px rgba(99, 102, 241, 0.3);
+}
+
+/* Legend */
+.cal-legend {
+    display: flex;
+    gap: 1rem;
+    font-size: 0.7rem;
+    color: var(--text-muted);
+    margin-bottom: 0.25rem;
+}
+
+.cal-legend-item {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+}
+
+.cal-legend-dot {
+    width: 10px;
+    height: 10px;
+    border-radius: 3px;
+    background: var(--primary);
+    flex-shrink: 0;
+}
+
+.cal-legend-dot.dot-today {
+    background: transparent;
+    border: 2px solid var(--primary);
+}
+
+.cal-legend-dot.dot-weekend {
+    background: rgba(148, 163, 184, 0.4);
 }
 
 /* Results */
@@ -349,26 +443,92 @@ input[type="number"]:focus {
     margin-top: 1.5rem;
     text-align: left;
     background: rgba(0, 0, 0, 0.2);
-    padding: 1.5rem;
+    padding: 1.25rem;
     border-radius: 16px;
-    font-size: 0.95rem;
+    font-size: 0.9rem;
+}
+
+/* Month block */
+.detail-month {
+    margin-bottom: 1rem;
+}
+
+.detail-month:last-of-type {
+    margin-bottom: 0.5rem;
+}
+
+.detail-month-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    font-weight: 700;
+    font-size: 0.88rem;
+    margin-bottom: 0.4rem;
+    padding-bottom: 0.4rem;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.07);
+}
+
+.detail-month-tag {
+    font-size: 0.7rem;
+    padding: 3px 10px;
+    border-radius: 12px;
+    font-weight: 600;
+}
+
+.tag-flex {
+    background: rgba(99, 102, 241, 0.18);
+    color: var(--primary);
+}
+
+.tag-monthly {
+    background: rgba(245, 158, 11, 0.18);
+    color: #f59e0b;
+}
+
+.details-list {
+    list-style: none;
+    padding: 0;
+    margin: 0;
 }
 
 .details-item {
     display: flex;
     justify-content: space-between;
-    margin-bottom: 8px;
-    padding-bottom: 8px;
-    border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+    align-items: center;
+    margin-bottom: 6px;
+    padding-bottom: 6px;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.04);
+}
+
+.detail-method {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    color: var(--text-muted);
+    font-size: 0.82rem;
+}
+
+.detail-cost {
+    font-weight: 700;
+    color: var(--text-main);
+}
+
+.details-saving {
+    font-size: 0.75rem;
+    color: var(--text-muted);
+    font-style: italic;
+    border-bottom: none !important;
 }
 
 .details-total {
     display: flex;
     justify-content: space-between;
     margin-top: 12px;
+    padding-top: 10px;
+    border-top: 1px solid rgba(255, 255, 255, 0.1);
     font-weight: bold;
     color: var(--accent);
-    font-size: 1.1rem;
+    font-size: 1.05rem;
 }
 
 footer {
@@ -404,28 +564,118 @@ footer {
     }
 }
 
-/* Mobile */
+/* ── Tablet ─────────────────────────────────────────────────────────────── */
+@media (max-width: 900px) {
+    .container {
+        padding: 1.25rem;
+    }
+}
+
+/* ── Mobile ─────────────────────────────────────────────────────────────── */
 @media (max-width: 600px) {
     h1 {
-        font-size: 2.2rem;
+        font-size: 1.9rem;
+        letter-spacing: -1px;
     }
 
+    .subtitle {
+        font-size: 0.9rem;
+    }
+
+    header {
+        margin-bottom: 1.25rem;
+    }
+
+    .container {
+        padding: 1rem 0.75rem;
+    }
+
+    .card {
+        padding: 1.25rem;
+        border-radius: 16px;
+    }
+
+    /* Prices: 3 colonnes compactes sur mobile */
+    .prices-grid {
+        grid-template-columns: repeat(3, 1fr);
+        gap: 8px;
+    }
+
+    input[type="number"] {
+        padding: 10px 10px;
+        font-size: 0.9rem;
+    }
+
+    .currency-symbol {
+        right: 8px;
+        font-size: 0.85rem;
+    }
+
+    /* Config header wrap */
+    .config-header {
+        flex-wrap: wrap;
+        gap: 6px;
+    }
+
+    .config-header label {
+        flex: 1 1 auto;
+    }
+
+    /* Calendar navigation */
+    .cal-month-label {
+        font-size: 0.88rem;
+    }
+
+    /* Calendar cells */
+    .cal-day, .cal-empty, .cal-overflow {
+        font-size: 0.72rem;
+        border-radius: 5px;
+    }
+
+    /* Calendar gap tighter */
+    .calendar-grid {
+        gap: 2px;
+    }
+
+    /* Legend wrap */
+    .cal-legend {
+        flex-wrap: wrap;
+        gap: 0.5rem 1rem;
+    }
+
+    /* Result panel */
+    .big-price {
+        font-size: 2.8rem;
+    }
+
+    .recommendation-badge {
+        font-size: 0.95rem;
+        padding: 1rem;
+    }
+
+    /* Details */
+    .details-section {
+        padding: 1rem;
+    }
+
+    .detail-month-header {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 5px;
+    }
+
+    .details-total {
+        font-size: 0.95rem;
+    }
+}
+
+/* ── Very small screens (≤ 360px) ───────────────────────────────────────── */
+@media (max-width: 360px) {
     .prices-grid {
         grid-template-columns: 1fr;
     }
 
-    .week-row {
-        flex-direction: column;
-        gap: 10px;
-        align-items: flex-start;
-    }
-
-    .week-controls {
-        width: 100%;
-        justify-content: space-between;
-    }
-
-    .btn-delete {
-        margin-left: auto;
+    .cal-day, .cal-empty, .cal-overflow {
+        font-size: 0.65rem;
     }
 }
