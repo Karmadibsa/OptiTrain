@@ -66,6 +66,11 @@ document.addEventListener('DOMContentLoaded', () => {
         return capitalize(new Date(y, m - 1, 1).toLocaleDateString('fr-FR', { month: 'long', year: 'numeric' }));
     }
 
+    // ─── Configuration (config.js chargé avant ce script) ────────────────────
+    const _CFG          = window.OPTITRAIN_CONFIG || {};
+    const AFFILIATE_URL  = _CFG.affiliateUrl  || 'https://www.sncf-connect.com/app/fr-fr/information/abonnements-trajets-reguliers';
+    const AFFILIATE_NAME = _CFG.affiliateName || 'SNCF Connect';
+
     // ─── Station search (SNCF Open Data — sans token, CORS natif) ────────────
 
     const SNCF_API = 'https://ressources.data.sncf.com/api/explore/v2.1/catalog/datasets/referentiel-gares-voyageurs/records';
@@ -74,8 +79,8 @@ document.addEventListener('DOMContentLoaded', () => {
         const url = new URL(SNCF_API);
         url.searchParams.set('q', query);
         url.searchParams.set('select', 'nom_gare,gare_uic_code,commune_libellemin,departement_libellemin');
-        url.searchParams.set('limit', '8');
-        url.searchParams.set('order_by', 'nbre_plateformes desc');
+        url.searchParams.set('limit', '10');
+        // Pas de order_by : le moteur de recherche Opendatasoft gère la pertinence
 
         const resp = await fetch(url, { signal });
         if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
@@ -166,8 +171,7 @@ document.addEventListener('DOMContentLoaded', () => {
         tariffStatus.innerHTML = `
             <i class="fa-solid fa-floppy-disk"></i>
             Prix mémorisés · mis à jour le ${label}
-            <a href="https://www.sncf-connect.com/app/fr-fr/information/abonnements-trajets-reguliers"
-               target="_blank" rel="noopener" class="verify-link">
+            <a href="${AFFILIATE_URL}" target="_blank" rel="noopener sponsored" class="verify-link">
                 Revérifier ↗
             </a>`;
     }
@@ -203,8 +207,8 @@ document.addEventListener('DOMContentLoaded', () => {
                         <i class="fa-solid fa-circle-info"></i>
                         Aucun prix mémorisé pour <strong>${from} → ${to}</strong> (${profileLabel()})
                     </div>
-                    <a href="https://www.sncf-connect.com/app/fr-fr/information/abonnements-trajets-reguliers"
-                       target="_blank" rel="noopener" class="btn-find-prices">
+                    <a href="${AFFILIATE_URL}"
+                       target="_blank" rel="noopener sponsored" class="btn-find-prices">
                         <i class="fa-solid fa-arrow-up-right-from-square"></i>
                         Trouver mes tarifs officiels →
                     </a>
@@ -272,6 +276,16 @@ document.addEventListener('DOMContentLoaded', () => {
         saveState();
     };
 
+    function apiErrorMsg(e) {
+        if (window.location.protocol === 'file:') {
+            return '<i class="fa-solid fa-triangle-exclamation"></i> Ouvre le site sur Netlify — la recherche nécessite une connexion.';
+        }
+        if (e.message && e.message.startsWith('HTTP')) {
+            return '<i class="fa-solid fa-triangle-exclamation"></i> Service SNCF indisponible — réessaie dans un instant.';
+        }
+        return '<i class="fa-solid fa-triangle-exclamation"></i> Pas de connexion — vérifie ton réseau.';
+    }
+
     // Input listeners avec AbortController pour annuler les requêtes obsolètes
     let debounceFrom, debounceTo;
     let abortFrom = new AbortController();
@@ -298,7 +312,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 openDropdown(dropFrom, results, s => selectStation('from', s));
             } catch (e) {
                 if (e.name !== 'AbortError') {
-                    dropFrom.innerHTML = '<div class="station-loading">Erreur réseau — réessaie.</div>';
+                    dropFrom.innerHTML = `<div class="station-loading">${apiErrorMsg(e)}</div>`;
                 }
             }
         }, 300);
@@ -325,7 +339,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 openDropdown(dropTo, results, s => selectStation('to', s));
             } catch (e) {
                 if (e.name !== 'AbortError') {
-                    dropTo.innerHTML = '<div class="station-loading">Erreur réseau — réessaie.</div>';
+                    dropTo.innerHTML = `<div class="station-loading">${apiErrorMsg(e)}</div>`;
                 }
             }
         }, 300);
@@ -473,6 +487,20 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     // ─── SNCF Calculation ─────────────────────────────────────────────────────
+    const affiliateCtaEl  = document.getElementById('affiliateCta');
+    const affiliateLinkEl = document.getElementById('affiliateLink');
+
+    function setAffiliateCta(visible) {
+        if (!affiliateCtaEl || !affiliateLinkEl) return;
+        if (visible) {
+            affiliateLinkEl.href = AFFILIATE_URL;
+            affiliateLinkEl.querySelector('.aff-name').textContent = AFFILIATE_NAME;
+            affiliateCtaEl.style.display = 'block';
+        } else {
+            affiliateCtaEl.style.display = 'none';
+        }
+    }
+
     function calculate() {
         const P_month = parseFloat(priceMonthInput.value) || 0;
         const P_week  = parseFloat(priceWeekInput.value)  || 0;
@@ -486,6 +514,7 @@ document.addEventListener('DOMContentLoaded', () => {
             funFactEl.innerText = '';
             detailsSection.innerHTML = '';
             monthlyCostEl.innerText = P_month ? `${P_month}€` : '—';
+            setAffiliateCta(false);
             return;
         }
 
@@ -495,6 +524,7 @@ document.addEventListener('DOMContentLoaded', () => {
             recommendationEl.style.background = 'rgba(255,255,255,0.06)';
             savingsEl.innerText = ''; funFactEl.innerText = ''; detailsSection.innerHTML = '';
             monthlyCostEl.innerText = '—';
+            setAffiliateCta(false);
             return;
         }
 
@@ -582,6 +612,7 @@ document.addEventListener('DOMContentLoaded', () => {
         detailsSection.innerHTML = html;
         detailsSection.style.display = 'block';
 
+        setAffiliateCta(true);
         updateFunFact(savings);
     }
 
